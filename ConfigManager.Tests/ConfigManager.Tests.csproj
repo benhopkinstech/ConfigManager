@@ -23,4 +23,8 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ConfigManager.Application\ConfigManager.Application.csproj" />
+  </ItemGroup>
+
 </Project>
