@@ -10,6 +10,7 @@ public class ConfigManagerService : IConfigManagerService
     private const char SpaceCharacter = ' ';
     private const char OpeningBraceCharacter = '{';
     private const char EqualsCharacter = '=';
+    private const string DefaultServer = "DEFAULTS";
 
     public List<ServerConfigEntity> LoadConfig(string filePath)
     {
@@ -59,5 +60,35 @@ public class ConfigManagerService : IConfigManagerService
         }
 
         return serverConfigs;
+    }
+
+    public bool UpdateConfigForServer(string filePath, ServerConfigEntity serverConfig)
+    {
+        string[] lines = File.ReadAllLines(filePath);
+
+        int indexOfStartLine = Array.IndexOf(lines, lines.FirstOrDefault(x => x.Equals(StartPrefix + SpaceCharacter + serverConfig.Server)));
+        if (indexOfStartLine.Equals(-1)) 
+            return false;
+
+        int indexOfEndLine = Array.IndexOf(lines, lines.FirstOrDefault(x => x.Equals(EndPrefix + SpaceCharacter + serverConfig.Server)));
+        if (indexOfEndLine.Equals(-1)) 
+            return false;
+
+        if (indexOfEndLine <= indexOfStartLine) 
+            return false;
+
+        lines = lines.Where((line, index) => index <= indexOfStartLine || index >= indexOfEndLine).ToArray();
+
+        var linesList = lines.ToList();
+        int count = 1;
+
+        foreach (var setting in serverConfig.Config)
+        {
+            linesList.Insert(indexOfStartLine + count, $"{setting.Key}{(serverConfig.Server.Equals(DefaultServer) ? "" : $"{{{serverConfig.Server}}}")}={setting.Value}");
+            count++;
+        }
+
+        File.WriteAllLines(filePath, linesList);
+        return true;
     }
 }
