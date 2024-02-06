@@ -2,6 +2,7 @@
 @using ConfigManager.Application.Interfaces
 @using ConfigManager.Domain.Entities
 @inject IConfigManagerService ConfigManagerService
+@rendermode InteractiveServer
 
 <PageTitle>Manage Config</PageTitle>
 
@@ -18,25 +19,52 @@ else
         <h2>@serverConfig.Server</h2>
         foreach (var setting in serverConfig.Config)
         {
-            <p>@setting.Key = @setting.Value</p>
+            <input type="text" style="width: 300px;" @bind="setting.Key" />
+            <input type="text" style="width: 600px;" @bind="setting.Value" />
+            <br />
         }
+        <br />
+        <button class="btn btn-primary" @onclick="() => UpdateConfig(serverConfig)">Update @serverConfig.Server</button>
+        <br />
+        <br />
+        <br />
+        <div>
+            <h4>Add New Setting</h4>
+            @if (Errors.ContainsKey(serverConfig.Server))
+            {
+                foreach (var error in Errors[serverConfig.Server])
+                {
+                    <p style="color: red;">@error</p>
+                }
+            }
+            <div>
+                <label for="newKey">Key:</label>
+                <input type="text" id="newKey" @bind="newKey" />
+            </div>
+            <div>
+                <label for="newValue">Value:</label>
+                <input type="text" id="newValue" @bind="newValue" />
+            </div>
+            <button class="btn btn-success" @onclick="() => AddNewConfig(serverConfig)">Add</button>
+        </div>
+        <br />
         if (!serverConfig.Server.Equals(DefaultServer))
         {
             if (DefaultServerSettings is not null)
             {
+                <br />
+                <span style="font-weight:bold">Inherited from DEFAULTS</span>
+
                 foreach (var defaultSetting in DefaultServerSettings)
                 {
                     var matchedSetting = serverConfig.Config.Where(x => x.Key.Equals(defaultSetting.Key));
                     if (matchedSetting.Count() == 0)
                     {
-                        <span style="font-weight:bold">Inherited from DEFAULTS</span>
                         <p>@defaultSetting.Key = @defaultSetting.Value</p>
                     }
                 }
             }
         }
-        <button class="btn btn-primary" @onclick="() => UpdateConfig(serverConfig)">Update @serverConfig.Server</button>
-        <br />
         <br />
     }
 }
@@ -44,19 +72,25 @@ else
 @code {
     private const string ConfigFilePath = "config.txt";
     private const string DefaultServer = "DEFAULTS";
+    private string newKey = string.Empty;
+    private string newValue = string.Empty;
 
     private List<ServerConfigEntity>? ServerConfigs { get; set; }
     private List<ConfigEntity>? DefaultServerSettings { get; set; }
+    private Dictionary<string, List<string>> Errors { get; set; } = new Dictionary<string, List<string>>();
 
-    protected override Task OnInitializedAsync()
+
+    protected override async Task OnInitializedAsync()
     {
-        ServerConfigs = GetConfig();
-        var defaultServer = ServerConfigs.FirstOrDefault(x => x.Server.Equals(DefaultServer));
-        if (defaultServer is not null)
+        await Task.Run(() =>
         {
-            DefaultServerSettings = defaultServer.Config;
-        }
-        return Task.CompletedTask;
+            ServerConfigs = GetConfig();
+            var defaultServer = ServerConfigs.FirstOrDefault(x => x.Server.Equals(DefaultServer));
+            if (defaultServer is not null)
+            {
+                DefaultServerSettings = defaultServer.Config;
+            }
+        });
     }
 
     private List<ServerConfigEntity> GetConfig()
@@ -67,5 +101,39 @@ else
     private void UpdateConfig(ServerConfigEntity server)
     {
         _ = ConfigManagerService.UpdateConfigForServer(ConfigFilePath, server);
+        ServerConfigs = GetConfig();
+    }
+
+    private void AddNewConfig(ServerConfigEntity server)
+    {
+        Errors.Remove(server.Server);
+
+        if (!string.IsNullOrWhiteSpace(newKey) && !string.IsNullOrWhiteSpace(newValue))
+        {
+            if (server.Config.Any(setting => setting.Key == newKey))
+            {
+                AddError(server.Server, "Duplicate key");
+            }
+            else
+            {
+                server.Config.Add(new ConfigEntity { Key = newKey, Value = newValue });
+                newKey = string.Empty;
+                newValue = string.Empty;
+                UpdateConfig(server);
+            }
+        }
+        else
+        {
+            AddError(server.Server, "Key and value cannot be blank.");
+        }
+    }
+
+    private void AddError(string server, string error)
+    {
+        if (!Errors.ContainsKey(server))
+        {
+            Errors[server] = new List<string>();
+        }
+        Errors[server].Add(error);
     }
 }
