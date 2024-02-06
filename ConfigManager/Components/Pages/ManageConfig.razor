@@ -1,7 +1,71 @@
 ﻿@page "/"
+@using ConfigManager.Application.Interfaces
+@using ConfigManager.Domain.Entities
+@inject IConfigManagerService ConfigManagerService
 
 <PageTitle>Manage Config</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Manage Config</h1>
 
-Welcome to your new app.
+@if (ServerConfigs == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    @foreach (var serverConfig in ServerConfigs)
+    {
+        <h2>@serverConfig.Server</h2>
+        foreach (var setting in serverConfig.Config)
+        {
+            <p>@setting.Key = @setting.Value</p>
+        }
+        if (!serverConfig.Server.Equals(DefaultServer))
+        {
+            if (DefaultServerSettings is not null)
+            {
+                foreach (var defaultSetting in DefaultServerSettings)
+                {
+                    var matchedSetting = serverConfig.Config.Where(x => x.Key.Equals(defaultSetting.Key));
+                    if (matchedSetting.Count() == 0)
+                    {
+                        <span style="font-weight:bold">Inherited from DEFAULTS</span>
+                        <p>@defaultSetting.Key = @defaultSetting.Value</p>
+                    }
+                }
+            }
+        }
+        <button class="btn btn-primary" @onclick="() => UpdateConfig(serverConfig)">Update @serverConfig.Server</button>
+        <br />
+        <br />
+    }
+}
+
+@code {
+    private const string ConfigFilePath = "config.txt";
+    private const string DefaultServer = "DEFAULTS";
+
+    private List<ServerConfigEntity>? ServerConfigs { get; set; }
+    private List<ConfigEntity>? DefaultServerSettings { get; set; }
+
+    protected override Task OnInitializedAsync()
+    {
+        ServerConfigs = GetConfig();
+        var defaultServer = ServerConfigs.FirstOrDefault(x => x.Server.Equals(DefaultServer));
+        if (defaultServer is not null)
+        {
+            DefaultServerSettings = defaultServer.Config;
+        }
+        return Task.CompletedTask;
+    }
+
+    private List<ServerConfigEntity> GetConfig()
+    {
+        return ConfigManagerService.LoadConfig(ConfigFilePath);
+    }
+
+    private void UpdateConfig(ServerConfigEntity server)
+    {
+        _ = ConfigManagerService.UpdateConfigForServer(ConfigFilePath, server);
+    }
+}
