@@ -5,8 +5,15 @@ namespace ConfigManager.Application.Services;
 
 public class ConfigManagerService : IConfigManagerService
 {
-    public List<ServerEntity> LoadConfig(string filePath)
+    public List<ServerConfigEntity> LoadConfig(string filePath)
     {
-        throw new NotImplementedException();
+        string[] lines = File.ReadAllLines(filePath);
+        var serverConfigs = new List<ServerConfigEntity>();
+
+        foreach (var line in lines)
+        {
+        }
+
+        return serverConfigs;
     }
 }

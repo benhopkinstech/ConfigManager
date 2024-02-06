@@ -1,6 +1,6 @@
 ﻿namespace ConfigManager.Domain.Entities;
 
-public class ServerEntity
+public class ServerConfigEntity
 {
     public string Server { get; set; } = default!;
     
