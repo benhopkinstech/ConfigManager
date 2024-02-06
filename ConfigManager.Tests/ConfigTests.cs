@@ -1,15 +1,12 @@
 using ConfigManager.Application.Interfaces;
 using ConfigManager.Application.Services;
-using ConfigManager.Domain.Entities;
 using FluentAssertions;
-using System.Linq;
 
 namespace ConfigManager.Tests
 {
     public class ConfigTests
     {
         private readonly IConfigManagerService _configManagerService;
-        private readonly List<ServerConfigEntity> _serverConfigs;
 
         private const string ConfigFilePath = "../../../../ConfigManager/config.txt";
         private const string DefaultServer = "DEFAULTS";
@@ -26,25 +23,27 @@ namespace ConfigManager.Tests
         public ConfigTests()
         {
             _configManagerService = new ConfigManagerService();
-            _serverConfigs = _configManagerService.LoadConfig(ConfigFilePath);
         }
 
         [Fact]
         public void LoadConfig_ServerCountShouldBe7()
         {
-            _serverConfigs.Should().HaveCount(7);
+            var serverConfigs = _configManagerService.LoadConfig(ConfigFilePath);
+            serverConfigs.Should().HaveCount(7);
         }
 
         [Fact]
         public void LoadConfig_DefaultServerCountShouldBe1()
         {
-            _serverConfigs.Where(x => x.Server.Equals(DefaultServer)).Should().HaveCount(1);
+            var serverConfigs = _configManagerService.LoadConfig(ConfigFilePath);
+            serverConfigs.Where(x => x.Server.Equals(DefaultServer)).Should().HaveCount(1);
         }
 
         [Fact]
         public void LoadConfig_OtherServersCountShouldBe6()
         {
-            _serverConfigs.Where(x => OtherServers.Contains(x.Server)).Should().HaveCount(6);
+            var serverConfigs = _configManagerService.LoadConfig(ConfigFilePath);
+            serverConfigs.Where(x => OtherServers.Contains(x.Server)).Should().HaveCount(6);
         }
     }
 }
